@@ -1,0 +1,199 @@
+from collections import defaultdict 
+import itertools 
+ 
+class CSP: 
+    def __init__(self, variables, domains, constraints): 
+        self.variables = variables 
+        self.domains = domains 
+        self.constraints = constraints 
+ 
+    def add_constraint(self, constraintobj): 
+        for v in constraintobj.variables: 
+            self.constraints[v].append(constraintobj) 
+ 
+    def consistent(self, variable, assignment): 
+        for constraintobj in self.constraints[variable]: 
+            if not constraintobj.satisfied(assignment): 
+                return False 
+        return True 
+ 
+    def backtracking_search(self, assignment={}): 
+        if len(assignment) == len(self.variables): 
+            return assignment 
+ 
+        unassigned = [v for v in self.variables if v not in assignment] 
+        first = unassigned[0] 
+ 
+        for value in self.domains[first]: 
+            local_assg = assignment.copy() 
+            local_assg[first] = value 
+            if self.consistent(first, local_assg): 
+                result = self.backtracking_search(local_assg) 
+                if result is not None: 
+                    return result 
+        return None 
+ 
+class CourseConflictConstraint: 
+    def __init__(self, course1, course2): 
+        self.variables = [course1, course2] 
+ 
+    def __repr__(self): 
+        return repr(self.variables) 
+ 
+    def satisfied(self, assignment): 
+        if self.variables[0] not in assignment or self.variables[1] not in assignment: 
+            return True 
+ 
+        timeslot1, room1 = assignment[self.variables[0]] 
+        timeslot2, room2 = assignment[self.variables[1]] 
+ 
+        return timeslot1 != timeslot2 or room1 != room2 
+ 
+class CourseScheduler: 
+    def __init__(self, courses, timeslots, classrooms, teacher_assignments): 
+        self.courses = courses 
+        self.timeslots = timeslots 
+        self.classrooms = classrooms 
+        self.teacher_assignments = teacher_assignments 
+        self.schedule = {} 
+ 
+    def create_csp(self): 
+ 
+        variables = self.courses 
+ 
+ 
+        domains = {course: [(timeslot, room) for timeslot, room in itertools.product(self.timeslots, 
+self.classrooms)] for course in self.courses} 
+ 
+ 
+        constraints = defaultdict(list) 
+        for course1, course2 in itertools.combinations(self.courses, 2): 
+            constraints[course1].append(CourseConflictConstraint(course1, course2)) 
+            constraints[course2].append(CourseConflictConstraint(course1, course2)) 
+ 
+ 
+        return CSP(variables, domains, constraints) 
+ 
+    def solve(self): 
+        csp = self.create_csp() 
+        solution = csp.backtracking_search() 
+ 
+        if solution: 
+            self.display_schedule(solution) 
+        else: 
+            print("No valid schedule found.") 
+ 
+    def display_schedule(self, schedule): 
+        print("\n--- Course Schedule ---\n") 
+        for course, (timeslot, room) in sorted(schedule.items()): 
+            teacher = self.teacher_assignments[course] 
+            print(f"Course      : {course}") 
+            print(f"Teacher     : {teacher}") 
+            print(f"Room        : {room}") 
+            print(f"Timeslot    : {timeslot}") 
+            print("-" * 30) 
+        print("\n--- End of Schedule ---\n") 
+ 
+ 
+courses = [ 
+    'Math', 'Science', 'History', 'English', 'Physics', 'Chemistry', 'Biology', 'CS', 'Economics', 'Geography', 
+'Art', 'AI', 'DBMS', 'OS', 
+    'Psychology', 'Sociology', 'Philosophy', 'Political Science', 'Music', 'Literature', 'Linguistics', 
+'Engineering', 'Astronomy', 
+    'Environmental Science', 'Education', 'Law', 'Medicine', 'Nursing', 'Pharmacy', 'Architecture', 'Civil 
+Engineering', 
+    'Mechanical Engineering', 'Electrical Engineering', 'Computer Engineering', 'Chemical Engineering', 
+'Robotics', 'Data Science', 
+    'Mathematics', 'Statistics', 'Accounting', 'Finance', 'Marketing', 'Business Administration', 
+'Management', 'Human Resources', 
+    'International Relations', 'Public Health', 'Nutrition', 'Sports Science', 'Theology', 'Religious Studies', 
+'Veterinary Science', 
+    'Agriculture', 'Forestry', 'Neuroscience', 'Genetics', 'Microbiology', 'Geology', 'Marine Biology', 'Urban 
+Planning', 'Civil Rights', 
+    'Criminology', 'Behavioral Science', 'Cognitive Science', 'Artificial Intelligence Ethics', 'Cybersecurity', 
+'Game Design', 
+    'Animation', 'Graphic Design', 'Journalism', 'Media Studies', 'Public Relations', 'Advertising', 
+'Photography', 'Film Studies', 
+'Theater Arts', 'Creative Writing', 'Fashion Design', 'Interior Design', 'Textile Engineering', 'Industrial 
+Design', 'Event Management', 
+'Hospitality Management', 'Tourism', 'Culinary Arts', 'Law Enforcement', 'Forensic Science', 'Social 
+Work', 'Humanitarian Aid', 
+'Aerospace Engineering', 'Agricultural Engineering', 'Logistics', 'Supply Chain Management', 'Retail 
+Management', 'Real Estate', 
+'Entrepreneurship', 'E-commerce', 'Digital Marketing', 'Blockchain Technology', 'FinTech', 'Healthcare 
+Management', 'Clinical Research', 
+'Psychiatry', 'Optometry', 'Dentistry', 'Biomedical Engineering', 'Health Informatics', 'Occupational 
+Therapy', 'Physiotherapy', 
+'Speech Pathology', 'Pharmaceutical Sciences', 'Veterinary Medicine', 'Animal Science', 'Botany', 
+'Forestry Management', 'Horticulture', 
+'Climate Science', 'Renewable Energy', 'Energy Management', 'Sustainable Development', 'Water 
+Resources Management', 'Agribusiness', 
+'Biotechnology', 'Environmental Policy', 'Food Technology', 'Environmental Engineering', 'Waste 
+Management', 'Public Administration' 
+] 
+timeslots = ['Monday 8AM', 'Monday 9:40AM', 'Monday 11:20AM', 'Monday 1PM', 
+'Tuesday 8AM', 'Tuesday 9:40AM', 'Tuesday 11:20AM', 'Tuesday 1PM', 
+'Wednesday 8AM', 'Wednesday 9:40AM', 'Wednesday 11:20AM', 'Wednesday 1PM', 
+'Thursday 8AM', 'Thursday 9:40AM', 'Thursday 11:20AM', 'Thursday 1PM',] 
+classrooms = ['Z201', 'Z202', 'Z203', 'Z204', 'Z205', 'Z206', 'Z207', 'Z208'] 
+teacher_assignments = { 
+'Math': 'Mr. Ali', 'Science': 'Mr. Ahmad', 'History': 'Mr. Hamad', 'English': 'Mr. Gulzeb', 
+'Physics': 'Mr. Muzamil', 'Chemistry': 'Mr. Shayan', 'Biology': 'Mr. Ahsan', 'CS': 'Mr. Johnson', 
+'Economics': 'Mr. Zafar', 'Geography': 'Mr. Haris', 'Art': 'Mr. Saad', 'AI': 'Mr. Shoaib', 
+'DBMS': 'Mr. Khan', 'OS': 'Mr. Umer', 'Psychology': 'Dr. Sara', 'Sociology': 'Dr. Raza', 
+'Philosophy': 'Dr. Nida', 'Political Science': 'Dr. Tariq', 'Music': 'Mr. Rizwan', 'Literature': 'Ms. Fatima', 
+'Linguistics': 'Dr. Asad', 'Engineering': 'Dr. Imran', 'Astronomy': 'Dr. Fariha', 'Environmental Science': 
+'Mr. Ali', 
+'Education': 'Mr. Faisal', 'Law': 'Mr. Bilal', 'Medicine': 'Dr. Waseem', 'Nursing': 'Ms. Ayesha', 
+'Pharmacy': 'Dr. Zain', 'Architecture': 'Mr. Shahid', 'Civil Engineering': 'Mr. Bilal', 'Mechanical 
+Engineering': 'Mr. Taha', 
+'Electrical Engineering': 'Mr. Usman', 'Computer Engineering': 'Ms. Samia', 'Chemical Engineering': 'Mr. 
+Ahsan', 
+'Robotics': 'Mr. Salman', 'Data Science': 'Dr. Sara', 'Mathematics': 'Mr. Rehan', 'Statistics': 'Mr. Saad', 
+'Accounting': 'Mr. Umair', 'Finance': 'Mr. Shafiq', 'Marketing': 'Ms. Rida', 'Business Administration': 
+'Mr. Khurram', 
+'Management': 'Mr. Faizan', 'Human Resources': 'Ms. Nazia', 'International Relations': 'Dr. Asim', 
+'Public Health': 'Ms. Sana', 
+'Nutrition': 'Ms. Fatima', 'Sports Science': 'Mr. Tanveer', 'Theology': 'Dr. Kamran', 'Religious Studies': 
+'Ms. Maryam', 
+'Veterinary Science': 'Dr. Ahmed', 'Agriculture': 'Mr. Bilal', 'Forestry': 'Dr. Raza', 'Neuroscience': 'Dr. 
+Sara', 
+'Genetics': 'Dr. Sana', 'Microbiology': 'Dr. Imran', 'Geology': 'Mr. Usman', 'Marine Biology': 'Mr. Rehan', 
+'Urban Planning': 'Ms. Hira', 'Civil Rights': 'Dr. Imran', 'Criminology': 'Mr. Faysal', 'Behavioral Science': 
+'Ms. Amina', 
+'Cognitive Science': 'Dr. Iqbal', 'Artificial Intelligence Ethics': 'Mr. Khalid', 'Cybersecurity': 'Ms. Shazia', 
+'Game Design': 'Mr. Nadir', 
+'Animation': 'Mr. Junaid', 'Graphic Design': 'Ms. Fariha', 'Journalism': 'Mr. Zain', 'Media Studies': 'Ms. 
+Rahila', 
+'Public Relations': 'Mr. Khurram', 'Advertising': 'Ms. Neelam', 'Photography': 'Mr. Usman', 'Film 
+Studies': 'Mr. Haider', 
+'Theater Arts': 'Ms. Sara', 'Creative Writing': 'Mr. Ali', 'Fashion Design': 'Ms. Sana', 'Interior Design': 
+'Mr. Adnan', 
+'Textile Engineering': 'Ms. Neha', 'Industrial Design': 'Mr. Imran', 'Event Management': 'Ms. Sadaf', 
+'Hospitality Management': 'Mr. Zia', 
+'Tourism': 'Ms. Nida', 'Culinary Arts': 'Mr. Danish', 'Law Enforcement': 'Mr. Yaseen', 'Forensic Science': 
+'Ms. Saira', 
+'Social Work': 'Ms. Sabina', 'Humanitarian Aid': 'Dr. Shoaib', 'Aerospace Engineering': 'Mr. Bilal', 
+'Agricultural Engineering': 'Dr. Tanveer', 
+'Logistics': 'Ms. Rina', 'Supply Chain Management': 'Mr. Yousuf', 'Retail Management': 'Ms. Tahira', 
+'Real Estate': 'Mr. Adeel', 
+'Entrepreneurship': 'Ms. Ayesha', 'E-commerce': 'Mr. Imran', 'Digital Marketing': 'Mr. Faizan', 
+'Blockchain Technology': 'Mr. Kamran', 
+'FinTech': 'Ms. Kiran', 'Healthcare Management': 'Mr. Shoaib', 'Clinical Research': 'Dr. Anwar', 
+'Psychiatry': 'Dr. Fariha', 
+'Optometry': 'Dr. Sara', 'Dentistry': 'Dr. Waseem', 'Biomedical Engineering': 'Dr. Bilal', 'Health 
+Informatics': 'Mr. Sufiyan', 
+'Occupational Therapy': 'Ms. Raheel', 'Physiotherapy': 'Mr. Ijaz', 'Speech Pathology': 'Ms. Nida', 
+'Pharmaceutical Sciences': 'Dr. Zain', 
+'Veterinary Medicine': 'Dr. Ali', 'Animal Science': 'Dr. Ahsan', 'Botany': 'Dr. Fariha', 'Forestry 
+Management': 'Mr. Rizwan', 
+'Horticulture': 'Ms. Muneeba', 'Climate Science': 'Dr. Zain', 'Renewable Energy': 'Mr. Arslan', 'Energy 
+Management': 'Ms. Raheel', 
+'Sustainable Development': 'Mr. Shoaib', 'Water Resources Management': 'Ms. Rida', 'Agribusiness': 
+'Mr. Faizan', 'Biotechnology': 'Dr. Samia', 
+'Environmental Policy': 'Ms. Maryam', 'Food Technology': 'Mr. Usman', 'Environmental Engineering': 
+'Mr. Ahmad', 'Waste Management': 'Mr. Irfan', 
+'Public Administration': 'Dr. Asim' 
+} 
+scheduler = CourseScheduler(courses, timeslots, classrooms, teacher_assignments) 
+scheduler.solve()
